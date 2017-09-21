@@ -15,6 +15,7 @@ data Register
 data Operand
  = Mode0 Register
  | Mode1 Register
+ | Const Int
  deriving (Show, Eq, Read)
 
 data Instruction
@@ -35,6 +36,7 @@ whitespace = void $ many $ oneOf " \n\t"
 -- Parses with p but trims whitespace afterwards.
 lexeme :: Parser a -> Parser a
 lexeme p = do
+  whitespace
   x <- p
   whitespace
   return x
@@ -63,14 +65,15 @@ mode1 = do
   return $ Mode1 r
 
 -- Parsers a number.
-number :: Parser Integer
-number = read <$> many1 digit
+number :: Parser Operand
+number = Const . read <$> many1 digit
+
 -- Parses a single instruction.
 instruction :: Parser Instruction
 instruction = read <$> choice [string "MOV", string "ADD"]
 
 operand :: Parser Operand
-operand = choice [mode0, mode1]
+operand = choice [mode0, mode1, number]
 
 -- Parses a complete two-operand instruction.
 operation2 :: Parser Operation
