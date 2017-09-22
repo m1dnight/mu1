@@ -45,15 +45,30 @@ type Program = [Instruction]
 
 -- Eats up all available whitespace at start of stream.
 whitespace :: Parser ()
-whitespace = void $ many $ oneOf " \n\t"
+whitespace = try inlineComment <|> try simpleWhitespace <|> return ()
+
+simpleWhitespace :: Parser ()
+simpleWhitespace = void $ many $ oneOf " \n\t"
+
+inlineComment :: Parser ()
+inlineComment = void (many1 $ char ';' <* manyTill anyChar (void (char '\n') <|> eof))
+
+blockComment :: Parser ()
+blockComment = do
+  void $ try (string "/*")
+  manyTill anyChar (try $ string "*/")
+  return ()
 
 -- Parses with p but trims whitespace afterwards.
 lexeme :: Parser a -> Parser a
 lexeme p = do
-  whitespace
   x <- p
   whitespace
   return x
+
+-----------
+-- Atoms --
+-----------
 
 -- Reads a register token
 register :: Parser Register
@@ -62,9 +77,17 @@ register = do
   i <- oneOf "1234"
   return $ read [n,i]
 
+-- Parsers a number.
+number :: Parser Operand
+number = Immed . read <$> many1 digit
+
+------------
+-- Tokens --
+------------
+
 -- Parses an operand in an expression in mode0.
 mode0 :: Parser Operand
-mode0 = Mode0 <$> register
+mode0 = Mode0 <$> lexeme register
 
 -- Parses an operand as mode1.
 mode1 :: Parser Operand
@@ -74,19 +97,21 @@ mode1 = do
   void $ lexeme $  char ')'
   return $ Mode1 r
 
--- Parsers a number.
-number :: Parser Operand
-number = Immed . read <$> many1 digit
+-- Parses a single instruction.
+operator :: Parser Operator
+operator = read <$> choice [string "MOV", string "ADD"]
+
+------------------
+-- Parser Rules --
+------------------
 
 -- Parses an operand. Either a register or an immediate value.
 operand :: Parser Operand
 operand = choice [mode0, mode1, number]
 
--- Parses a single instruction.
-operator :: Parser Operator
-operator = read <$> choice [string "MOV", string "ADD"]
 
--- Parses a complete two-operand instruction.
+
+-- Parses a complete two-operand operation.
 operation2 :: Parser Operation
 operation2 = TwoOp <$> lexeme operator <*> lexeme operand <*> lexeme operand
 
@@ -112,6 +137,6 @@ labeledOperation = LOp <$> (Labeled <$> label <*> operation)
 instruction :: Parser Instruction
 instruction = unlabeledOperation <|> labeledOperation
 
-
+-- Entry point of the parser.
 program :: Parser Program
 program = many1 instruction <* eof

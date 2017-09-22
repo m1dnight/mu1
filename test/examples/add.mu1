@@ -1,2 +1,6 @@
-BAR:     MOV 5  R1
-FOO: MOV 5 R1
+/* foo
+*/
+MOV 10 R1 ; Move the first number into R1.
+MOV 12 R2 ; Move the second number into R2.
+ADD R1 R2 ; Add R1 to R2.
+MOV R2 R3 ; Move the result to R3.
