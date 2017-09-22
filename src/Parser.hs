@@ -45,19 +45,23 @@ type Program = [Instruction]
 
 -- Eats up all available whitespace at start of stream.
 whitespace :: Parser ()
-whitespace = try inlineComment <|> try simpleWhitespace <|> return ()
+whitespace = void $ many (inlineComment
+                          <|> simpleWhitespace
+                          <|> blockComment
+                          <|> unexpected "foo")
 
 simpleWhitespace :: Parser ()
-simpleWhitespace = void $ many $ oneOf " \n\t"
+simpleWhitespace = void $ many1 $ oneOf " \n\t"
 
 inlineComment :: Parser ()
 inlineComment = void (many1 $ char ';' <* manyTill anyChar (void (char '\n') <|> eof))
 
+
 blockComment :: Parser ()
-blockComment = do
-  void $ try (string "/*")
-  manyTill anyChar (try $ string "*/")
-  return ()
+blockComment = void (-- no nesting of block comments in SQL
+                     try (string "/*")
+                     *> manyTill anyChar (try $ string "*/"))
+
 
 -- Parses with p but trims whitespace afterwards.
 lexeme :: Parser a -> Parser a
@@ -139,4 +143,4 @@ instruction = unlabeledOperation <|> labeledOperation
 
 -- Entry point of the parser.
 program :: Parser Program
-program = many1 instruction <* eof
+program = whitespace >> many1 instruction <* eof

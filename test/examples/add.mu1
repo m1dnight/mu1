@@ -1,4 +1,8 @@
-/* foo
+/*
+This program will add two numbers together.
+First we add them both to register R1 and R2
+respectively.
+We add them together and move the result to R3.
 */
 MOV 10 R1 ; Move the first number into R1.
 MOV 12 R2 ; Move the second number into R2.
