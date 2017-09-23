@@ -5,19 +5,23 @@ version:             0.1.0.0
 homepage:            https://github.com/githubuser/mu1#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2017 Author name here
-category:            Web
+author:              Christophe De Troyer
+maintainer:          christophe@call-cc.be
+copyright:           2017 Christophe De Troyer
+category:            None
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, Parser, AST
+  exposed-modules:     Lib, Parser, AST, Assembler, Util
   build-depends:       base >= 4.7 && < 5
                      , parsec
+                     , bytestring
+                     , containers
+                     , transformers
+                     , hexdump == 0.1
   default-language:    Haskell2010
 
 executable mu1
@@ -39,4 +43,4 @@ test-suite mu1-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/mu1
+  location: https://github.com/m1dnight/mu1

@@ -47,7 +47,13 @@ register = do
 
 -- Parsers a number.
 number :: Parser Operand
-number = Immed . read <$> many1 digit
+number = negative <|> positive
+
+positive :: Parser Operand
+positive = Immed . read <$> many1 digit
+
+negative :: Parser Operand
+negative  =(void $ char '-') >> Immed . read <$> many1 digit
 
 ------------
 -- Tokens --
@@ -67,7 +73,7 @@ mode1 = do
 
 -- Parses a single instruction.
 operator :: Parser Operator
-operator = read <$> choice [string "MOV", string "ADD"]
+operator = read <$> choice [string "MOV", string "ADD", string "SUB", string "CMP", string "BEQ"]
 
 ------------------
 -- Parser Rules --
@@ -78,6 +84,9 @@ operand :: Parser Operand
 operand = choice [mode0, mode1, number]
 
 
+-- Parsers a complete one-operand operation.
+operation1 :: Parser Operation
+operation1 = OneOp <$> lexeme operator <*> lexeme operand
 
 -- Parses a complete two-operand operation.
 operation2 :: Parser Operation
@@ -85,7 +94,7 @@ operation2 = TwoOp <$> lexeme operator <*> lexeme operand <*> lexeme operand
 
 -- Parses any operation (0, 1, or two operands)
 operation :: Parser Operation
-operation = choice [operation2]
+operation = choice [try operation2, try operation1]
 
 -- Parses a label.
 label :: Parser Label
@@ -103,7 +112,7 @@ labeledOperation = LOp <$> (Labeled <$> label <*> operation)
 -- Parses any operation.
 -- Labeled operations, or none-labeled.
 instruction :: Parser Instruction
-instruction = unlabeledOperation <|> labeledOperation
+instruction = try unlabeledOperation <|> labeledOperation
 
 -- Entry point of the parser.
 program :: Parser Program

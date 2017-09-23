@@ -17,12 +17,16 @@ data Operand
 data Operator
  = MOV
  | ADD
+ | SUB
+ | CMP
+ | BEQ
  deriving (Show, Eq, Read)
 
 type Label = String
 
 data Operation
   = TwoOp Operator Operand Operand
+  | OneOp Operator Operand
   deriving (Show, Eq, Read)
 
 data LabeledOperation
@@ -33,6 +37,5 @@ data Instruction
   = Op Operation
   | LOp LabeledOperation
   deriving(Show, Eq, Read)
-
 
 type Program = [Instruction]
