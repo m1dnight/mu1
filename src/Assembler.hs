@@ -39,6 +39,8 @@ test o = evalState (assembleOperation o) emptyState
 
 test1 = test $ TwoOp MOV (Mode0 R1) (Mode0 R2)
 
+test2 = test $ OneOp BEQ (Mode0 R1)
+
 printBinary :: Word16 -> String
 printBinary = printf "%016b"
 
@@ -76,7 +78,12 @@ assembleOperation (TwoOp opr src dst) = do
   srcb <- flip shift 6 <$> assembleOperand src
   dstb <- assembleOperand dst
   oprb <- flip shift 12 <$> assembleOperator opr
-  trace (printBinary srcb ++ " " ++ printBinary dstb ++ " " ++ printBinary oprb) $ return $ srcb .|. dstb .|. oprb
+  return $ srcb .|. dstb .|. oprb
+
+assembleOperation (OneOp opr src) = do
+  srcb <- assembleOperand src
+  oprb <- flip shift 12 <$> assembleOperator opr
+  return $ srcb .|. oprb
 
 ---------------
 -- Operators --
