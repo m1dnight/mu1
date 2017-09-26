@@ -1,4 +1,5 @@
+
 ; Test 1
-MOV R1 R2
+MOV 30 R2
 ; Expected:
 ; 0000 000 001  000 010

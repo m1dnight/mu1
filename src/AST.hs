@@ -11,6 +11,7 @@ data Register
 data Operand
  = Mode0 Register
  | Mode1 Register
+ | Mode2 Register
  | Immed Int
  deriving (Show, Eq, Read)
 

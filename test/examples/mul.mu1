@@ -2,7 +2,6 @@
 This program is an example of functions. I.e., jumps.
 The example is multiplication.
 */
-
 ; First move the two numbers into R1 and R2.
 MOV 5 R1
 MOV 2 R2
@@ -14,7 +13,11 @@ MUL: ADD R3 R1 ; R1 * 2
      SUB 1  R2
      CMP R2 0
      BEQ -4
-     
 
+/*
+Expected output:
 
-     
+0000 010 111 000 001
+0000 000 000 000 101 ; 5
+
+*/

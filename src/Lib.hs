@@ -11,14 +11,17 @@ import Text.Parsec.String
 runAssembler :: IO ()
 runAssembler = do
   p <- parseFile
-  b <- assemble p
+  let (b, _m) = assemble p
+  let bs = printBinaries b
+  putStrLn "AST\n"
   print p
-  print b
+  putStrLn "Program binary\n"
+  putStrLn bs
   return ()
 
 
 
-parseFile :: IO Program 
+parseFile :: IO Program
 parseFile = do
   a <- getArgs
   case a of
@@ -27,8 +30,3 @@ parseFile = do
                  Left e  -> error $ show e
                  Right p -> return p
     _    -> error "Expected exactly one argument"
-
-assemble :: Program -> IO Int
-assemble _ = return 5
-               
-              

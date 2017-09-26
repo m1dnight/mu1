@@ -9,6 +9,7 @@ import Data.Map.Strict
 import Data.Word
 import Data.Bits
 import Util
+import Data.Maybe
 
 import Debug.Trace
 import Text.Printf
@@ -34,15 +35,25 @@ type Binary = Word16
 
 type Binaries = [Binary]
 
-test :: Operation -> Binary
-test o = evalState (assembleOperation o) emptyState
+-- test :: Operation -> Binaries
+-- test o = evalState (assembleOperation o) emptyState
+--
+-- test1 = test $ TwoOp MOV (Mode0 R1) (Mode0 R2)
+--
+-- test2 = test $ OneOp BEQ (Mode0 R1)
+--
+-- test3 = test $ TwoOp MOV (Immed 30) (Mode0 R2)
+--
+-- test4 = test $ TwoOp MOV (Immed 5) (Mode0 R1)
 
-test1 = test $ TwoOp MOV (Mode0 R1) (Mode0 R2)
+binaryStr :: Binary -> String
+binaryStr b = printf "%016b" b
 
-test2 = test $ OneOp BEQ (Mode0 R1)
+printBinary :: Binary -> String
+printBinary b = printf "%05d %s" b (binaryStr b)
 
-printBinary :: Word16 -> String
-printBinary = printf "%016b"
+printBinaries :: Binaries -> String
+printBinaries bs = unlines $ Prelude.map printBinary bs
 
 -------------
 -- Helpers --
@@ -70,20 +81,65 @@ setLabel label value =
     let state'   = state { labels = labels' }
     put state'
 
+---------------
+-- Interface --
+---------------
+
+assemble :: Program -> (Binaries, Memory)
+assemble p = let (bs, mem) = runState (assembleProgram p) emptyState
+             in
+               (bs, mem)
+
 -------------
 -- Program --
 -------------
-assembleOperation :: Operation -> Compiler Binary
+
+assembleProgram :: Program -> Compiler Binaries
+assembleProgram []     = return []
+assembleProgram (i:is) = do
+  bs  <- assembleInstruction i
+  bs' <- assembleProgram is
+  return $ bs ++ bs'
+
+-----------------
+-- Instruction --
+-----------------
+
+assembleInstruction :: Instruction -> Compiler Binaries
+assembleInstruction (Op o) = assembleOperation o
+assembleInstruction (LOp o) = assembleLabeledOperation o
+
+-----------------------
+-- Labeled Operation --
+-----------------------
+
+assembleLabeledOperation :: LabeledOperation -> Compiler Binaries
+assembleLabeledOperation (Labeled l op) = do
+  assembleLabel l
+  assembleOperation op
+
+---------------
+-- Operation --
+---------------
+
+assembleOperation :: Operation -> Compiler Binaries
 assembleOperation (TwoOp opr src dst) = do
-  srcb <- flip shift 6 <$> assembleOperand src
-  dstb <- assembleOperand dst
+  (srcb, srcr) <- assembleOperand src
+  (dstb, dstr) <- assembleOperand dst
   oprb <- flip shift 12 <$> assembleOperator opr
-  return $ srcb .|. dstb .|. oprb
+  return $ [(shift srcb 6) .|. dstb .|. oprb] ++ maybeToList srcr ++ maybeToList dstr
 
 assembleOperation (OneOp opr src) = do
-  srcb <- assembleOperand src
+  (srcb, rest) <- assembleOperand src
   oprb <- flip shift 12 <$> assembleOperator opr
-  return $ srcb .|. oprb
+  return [srcb .|. oprb]
+
+-----------
+-- Label --
+-----------
+
+assembleLabel :: Label -> Compiler ()
+assembleLabel l = lineCount >>= setLabel l
 
 ---------------
 -- Operators --
@@ -100,14 +156,22 @@ assembleOperator BEQ = return 4
 -- Operands --
 --------------
 
-assembleOperand :: Operand -> Compiler Binary
+assembleOperand :: Operand -> Compiler (Binary, Maybe Binary)
 assembleOperand (Mode0 r) = do
   r <- assembleRegister r
-  return r
+  return (r, Nothing)
 
 assembleOperand (Mode1 r) = do
   r <- assembleRegister r
-  return $ shift 3 1 .|. r
+  return (shift 1 3 .|. r, Nothing)
+
+assembleOperand (Mode2 r) = do
+  r <- assembleRegister r
+  return (shift 2 3 .|. r, Nothing)
+
+assembleOperand (Immed n) = do
+  (op, _) <- assembleOperand (Mode2 PC)
+  return (op, Just . fromIntegral $ n)
 
 ---------------
 -- Registers --
