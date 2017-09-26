@@ -8,7 +8,7 @@ main = do
   c <- runTestTT tests
   print c
 
-tests = TestList $ registers ++ operands ++ operators ++ operations
+tests = TestList $ registers ++ operands ++ operators ++ operations ++ programs
 
 ---------------
 -- Registers --
@@ -58,6 +58,38 @@ operations = [testopr_1, testopr_2, testopr_3]
 testopr_1 = TestCase (assertEqual "MOV R1 R2" ["0000000001000010"] (runAsm $ assembleOperation $ TwoOp MOV (Mode0 R1) (Mode0 R2)))
 testopr_2 = TestCase (assertEqual "MOV 5  R2" ["0000010101000010", "0000000000000101"] (runAsm $ assembleOperation $ TwoOp MOV (Immed 5) (Mode0 R2)))
 testopr_3 = TestCase (assertEqual "MOV 4  5"  ["0000010101010101", "0000000000000100", "0000000000000101"] (runAsm $ assembleOperation $ TwoOp MOV (Immed 4) (Immed 5)))
+
+---------------------
+-- Entire Programs --
+---------------------
+programs = [testprog_1]
+
+prog = [
+         Op (TwoOp MOV (Immed 5) (Mode0 R1)),
+         Op (TwoOp MOV (Immed 2) (Mode0 R2)),
+         Op (TwoOp MOV (Mode0 R1) (Mode0 R3)),
+         LOp (Labeled "MUL" (TwoOp ADD (Mode0 R3) (Mode0 R1))),
+         Op (TwoOp SUB (Immed 1) (Mode0 R2)),
+         Op (TwoOp CMP (Mode0 R2) (Immed 0)),
+         Op (OneOp BEQ (Immed 4))
+       ]
+
+output = [
+          "0000010101000001",
+          "0000000000000101",
+          "0000010101000010",
+          "0000000000000010",
+          "0000000001000011",
+          "0001000011000001",
+          "0010010101000010",
+          "0000000000000001",
+          "0011000010010101",
+          "0000000000000000",
+          "0100000000010101",
+          "0000000000000100"
+        ]
+
+testprog_1 = TestCase (assertEqual "Program: mul" output (runAsm $ assembleProgram prog))
 -------------
 -- Helpers --
 -------------

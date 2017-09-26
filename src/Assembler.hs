@@ -127,12 +127,13 @@ assembleOperation (TwoOp opr src dst) = do
   (srcb, srcr) <- assembleOperand src
   (dstb, dstr) <- assembleOperand dst
   oprb <- flip shift 12 <$> assembleOperator opr
-  return $ [(shift srcb 6) .|. dstb .|. oprb] ++ maybeToList srcr ++ maybeToList dstr
+  return $ [shift srcb 6 .|. dstb .|. oprb] ++ maybeToList srcr ++ maybeToList dstr
 
 assembleOperation (OneOp opr src) = do
   (srcb, rest) <- assembleOperand src
   oprb <- flip shift 12 <$> assembleOperator opr
-  return [srcb .|. oprb]
+  let remdr = maybeToList rest
+  return $ (srcb .|. oprb) : remdr
 
 -----------
 -- Label --
