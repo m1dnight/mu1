@@ -23,6 +23,7 @@ library
                      , transformers
                      , hexdump == 0.1
                      , HUnit
+                     , binary
   default-language:    Haskell2010
 
 executable mu1
