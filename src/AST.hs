@@ -21,6 +21,7 @@ data Operator
  | SUB
  | CMP
  | BEQ
+ | STOP
  deriving (Show, Eq, Read)
 
 type Label = String
@@ -28,6 +29,7 @@ type Label = String
 data Operation
   = TwoOp Operator Operand Operand
   | OneOp Operator Operand
+  | ZeroOp Operator
   deriving (Show, Eq, Read)
 
 data LabeledOperation

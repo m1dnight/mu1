@@ -135,6 +135,10 @@ assembleOperation (OneOp opr src) = do
   let remdr = maybeToList rest
   return $ (srcb .|. oprb) : remdr
 
+assembleOperation (ZeroOp opr) = do
+  opr <- flip shift 12 <$> assembleOperator opr
+  return [opr]
+
 -----------
 -- Label --
 -----------
@@ -147,11 +151,12 @@ assembleLabel l = lineCount >>= setLabel l
 ---------------
 
 assembleOperator :: Operator -> Compiler Binary
-assembleOperator MOV = return 0
-assembleOperator ADD = return 1
-assembleOperator SUB = return 2
-assembleOperator CMP = return 3
-assembleOperator BEQ = return 4
+assembleOperator MOV  = return 0
+assembleOperator ADD  = return 1
+assembleOperator SUB  = return 2
+assembleOperator CMP  = return 3
+assembleOperator BEQ  = return 4
+assembleOperator STOP = return 5
 
 --------------
 -- Operands --
