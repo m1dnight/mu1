@@ -167,6 +167,13 @@ assembleOperand (Immed n) = do
   (op, _) <- assembleOperand (Mode2 PC)
   return (op, Just . fromIntegral $ n)
 
+-- If we assemble a label we need to write a dummy value.
+-- If we return the value 63, that is the binary pattern 111 111.
+-- Addressing mode 111 does not exist, neither does register 111.
+-- We assume that this label will be inserted as an offset inline!
+assembleOperand (Lbl l) = return (63, Nothing)
+
+
 inlineOperand :: Operand -> Compiler Binary
 inlineOperand (Immed n) = return (fromIntegral n :: Binary)
 

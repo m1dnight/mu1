@@ -55,6 +55,18 @@ positive = Immed . read <$> many1 digit
 negative :: Parser Operand
 negative  = void (char '-') >> Immed . read <$> many1 digit
 
+-- Parses a label.
+label :: Parser Label
+label = do
+  l <- lexeme $ many1 upper
+  void $ lexeme $ char ':'
+  return l
+
+labelOperand :: Parser Operand
+labelOperand = do
+  l <- lexeme $ many1 upper
+  return $ Lbl l
+
 ------------
 -- Tokens --
 ------------
@@ -72,10 +84,15 @@ mode1 = do
   return $ Mode1 r
 
 -- Parses a single instruction.
-operator :: Parser Operator
-operator = read <$> choice [try $ string "MOV", try $ string "ADD",
-                            try $ string "SUB", try $ string "CMP",
-                            try $ string "BEQ", try $ string "STOP"]
+operator2 :: Parser Operator
+operator2 = read <$> choice [try $ string "MOV", try $ string "ADD",
+                            try $ string "SUB", try $ string "CMP"]
+
+operator1 :: Parser Operator
+operator1 = read <$> choice [try $ string "BEQ"]
+
+operator0 :: Parser Operator
+operator0 = read <$> choice [try $ string "STOP"]
 
 ------------------
 -- Parser Rules --
@@ -83,30 +100,23 @@ operator = read <$> choice [try $ string "MOV", try $ string "ADD",
 
 -- Parses an operand. Either a register or an immediate value.
 operand :: Parser Operand
-operand = choice [mode0, mode1, number]
+operand = choice [try mode0, try mode1, try number, try labelOperand]
 
 -- Parsers a complete zero-operand operation.
 operation0 :: Parser Operation
-operation0 = ZeroOp <$> lexeme operator
+operation0 = ZeroOp <$> lexeme operator0
 
 -- Parsers a complete one-operand operation.
 operation1 :: Parser Operation
-operation1 = OneOp <$> lexeme operator <*> lexeme operand
+operation1 = OneOp <$> lexeme operator1 <*> lexeme operand
 
 -- Parses a complete two-operand operation.
 operation2 :: Parser Operation
-operation2 = TwoOp <$> lexeme operator <*> lexeme operand <*> lexeme operand
+operation2 = TwoOp <$> lexeme operator2 <*> lexeme operand <*> lexeme operand
 
 -- Parses any operation (0, 1, or two operands)
 operation :: Parser Operation
 operation = choice [try operation2, try operation1, try operation0]
-
--- Parses a label.
-label :: Parser Label
-label = do
-  l <- lexeme $ many1 upper
-  void $ lexeme $ char ':'
-  return l
 
 unlabeledOperation :: Parser Instruction
 unlabeledOperation = Op <$> operation

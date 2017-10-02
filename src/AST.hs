@@ -13,6 +13,7 @@ data Operand
  | Mode1 Register
  | Mode2 Register
  | Immed Int
+ | Lbl   Label
  deriving (Show, Eq, Read)
 
 data Operator
