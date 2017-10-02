@@ -35,19 +35,8 @@ type Binary = Word16
 
 type Binaries = [Binary]
 
--- test :: Operation -> Binaries
--- test o = evalState (assembleOperation o) emptyState
---
--- test1 = test $ TwoOp MOV (Mode0 R1) (Mode0 R2)
---
--- test2 = test $ OneOp BEQ (Mode0 R1)
---
--- test3 = test $ TwoOp MOV (Immed 30) (Mode0 R2)
---
--- test4 = test $ TwoOp MOV (Immed 5) (Mode0 R1)
-
 binaryStr :: Binary -> String
-binaryStr b = printf "%016b" b
+binaryStr = printf "%016b"
 
 printBinary :: Binary -> String
 printBinary b = printf "%05d %s" b (binaryStr b)
@@ -130,10 +119,9 @@ assembleOperation (TwoOp opr src dst) = do
   return $ [shift srcb 6 .|. dstb .|. oprb] ++ maybeToList srcr ++ maybeToList dstr
 
 assembleOperation (OneOp opr src) = do
-  (srcb, rest) <- assembleOperand src
+  srcb <- inlineOperand src
   oprb <- flip shift 12 <$> assembleOperator opr
-  let remdr = maybeToList rest
-  return $ (srcb .|. oprb) : remdr
+  return [srcb .|. oprb]
 
 assembleOperation (ZeroOp opr) = do
   opr <- flip shift 12 <$> assembleOperator opr
@@ -178,6 +166,9 @@ assembleOperand (Mode2 r) = do
 assembleOperand (Immed n) = do
   (op, _) <- assembleOperand (Mode2 PC)
   return (op, Just . fromIntegral $ n)
+
+inlineOperand :: Operand -> Compiler Binary
+inlineOperand (Immed n) = return (fromIntegral n :: Binary)
 
 ---------------
 -- Registers --

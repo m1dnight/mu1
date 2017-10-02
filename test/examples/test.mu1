@@ -1,2 +1,5 @@
-ADD R1 R2
-STOP
+     ADD 10  R1
+LBL: SUB 1 R1
+     CMP R1 0
+     BEQ 10
+     STOP

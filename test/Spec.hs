@@ -53,16 +53,16 @@ testop_5 = TestCase (assertEqual "BEQ" "0000000000000100" (runAsm' $ assembleOpe
 -- Operation --
 ---------------
 
-operations = [testopr_1, testopr_2, testopr_3]
+operations = [testopr_1, testopr_2, testopr_3, testopr_4]
 
 testopr_1 = TestCase (assertEqual "MOV R1 R2" ["0000000001000010"] (runAsm $ assembleOperation $ TwoOp MOV (Mode0 R1) (Mode0 R2)))
 testopr_2 = TestCase (assertEqual "MOV 5  R2" ["0000010101000010", "0000000000000101"] (runAsm $ assembleOperation $ TwoOp MOV (Immed 5) (Mode0 R2)))
 testopr_3 = TestCase (assertEqual "MOV 4  5"  ["0000010101010101", "0000000000000100", "0000000000000101"] (runAsm $ assembleOperation $ TwoOp MOV (Immed 4) (Immed 5)))
-
+testopr_4 = TestCase (assertEqual "BEQ R1 0"  ["0100000001010101", "0000000000000000"] (runAsm $ assembleOperation $ TwoOp BEQ (Mode0 R1) (Immed 0)))
 ---------------------
 -- Entire Programs --
 ---------------------
-programs = [testprog_1]
+programs = [testprog_1, testprog_2]
 
 prog = [
          Op (TwoOp MOV (Immed 5) (Mode0 R1)),
@@ -85,11 +85,33 @@ output = [
           "0000000000000001",
           "0011000010010101",
           "0000000000000000",
-          "0100000000010101",
-          "0000000000000100"
+          "0100000000000100"
         ]
 
 testprog_1 = TestCase (assertEqual "Program: mul" output (runAsm $ assembleProgram prog))
+
+prog2 =
+  [
+    Op (TwoOp ADD (Immed 10) (Mode0 R1)),
+    LOp (Labeled "LBL" (TwoOp SUB (Immed 1) (Mode0 R1))),
+    Op (TwoOp CMP (Mode0 R1) (Immed 0)),
+    Op (OneOp BEQ (Immed 10)),
+    Op (ZeroOp STOP)
+  ]
+
+output2 =
+  [
+    "0001010101000001",  -- ADD 10 R1
+    "0000000000001010",  -- 10
+    "0010010101000001",  -- LBL: SUB 1 R1
+    "0000000000000001",  -- 1
+    "0011000001010101",  -- CMP R1 0
+    "0000000000000000",  -- 0
+    "0100000000001010",  -- BEQ 10
+    "0101000000000000"
+  ]
+
+testprog_2 = TestCase (assertEqual "Program: dec loop" output2 (runAsm $ assembleProgram prog2))
 -------------
 -- Helpers --
 -------------
