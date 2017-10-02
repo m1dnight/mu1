@@ -2,13 +2,26 @@ import Test.HUnit
 import Assembler
 import Control.Monad.Trans.State.Lazy
 import AST
+import Text.Printf
 
 main :: IO ()
 main = do
   c <- runTestTT tests
   print c
 
-tests = TestList $ registers ++ operands ++ operators ++ operations ++ programs
+tests = TestList $ registers ++ operands ++ operators ++ operations ++ programs ++ compressionTests
+
+-----------------
+-- Compression --
+-----------------
+
+compressionTests = map (\n -> TestCase
+                                (assertEqual
+                                  (printf "Conversion %s" (show n))
+                                  n
+                                  (decompress2c . compress2c $ n)))
+                      [-128..127]
+
 
 ---------------
 -- Registers --
@@ -62,7 +75,7 @@ testopr_4 = TestCase (assertEqual "BEQ R1 0"  ["0100000001010101", "000000000000
 ---------------------
 -- Entire Programs --
 ---------------------
-programs = [testprog_1, testprog_2]
+programs = [testprog_1, testprog_2, testprog_3]
 
 prog = [
          Op (TwoOp MOV (Immed 5) (Mode0 R1)),
@@ -112,6 +125,24 @@ output2 =
   ]
 
 testprog_2 = TestCase (assertEqual "Program: dec loop" output2 (runAsm $ assembleProgram prog2))
+
+prog3 =
+  [
+    Op (TwoOp ADD (Immed 10) (Mode0 R1)),
+    LOp (Labeled "LBL" (ZeroOp STOP)),
+    Op (OneOp BEQ (Lbl "LBL"))
+  ]
+
+output3 =
+  [
+  "0001010101000001",  -- ADD 10 R1
+  "0000000000001010",  -- 10
+  "0101000000000000", -- LBL: STOP
+  "0100000011111110"  -- BEQ LBL
+  ]
+-- 000 001 011 111 111
+testprog_3 = TestCase (assertEqual "Program: jmp offset" output3 (runAsm $ assembleProgram prog3 >>= backpatch))
+
 -------------
 -- Helpers --
 -------------

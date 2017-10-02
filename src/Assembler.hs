@@ -61,7 +61,18 @@ lineCountInc delta =
     let state' = state {linecount = lc + delta}
     put state'
 
-    -- Remembers a constant
+
+-- Remembers a label and a current address in the
+setBackpatch :: String -> Int -> Compiler ()
+setBackpatch label position =
+  do
+    state <- get
+    let patches' = M.insert position label $ backpatches state
+    let state'   = state { backpatches = patches' }
+    put state'
+
+
+-- Remembers a constant
 setLabel :: String -> Int -> Compiler ()
 setLabel label value =
   do
@@ -70,14 +81,108 @@ setLabel label value =
     let state'   = state { labels = labels' }
     put state'
 
+
+-- Backpatches the entire binary with the state accumulated during compilation.
+backpatch :: Binaries -> Compiler Binaries
+backpatch src =
+  do
+    state <- get
+    -- ls :: Map String Int
+    let ls  = labels state
+    -- bps :: Map Int String
+    let bps = backpatches state
+    -- Iterate over all the labels and replace them if they have been referenced.
+    let patched = M.foldWithKey (\currentLine label bin ->
+                                   -- We need to backpatch on line "currentLine".
+                                   -- The line the label refers to is 'lblline'.
+                                   let (Just target) = M.lookup label ls
+                                       offset        = compress2c (fromIntegral (target - currentLine))
+                                   in
+                                     trace (printf "Patching %s with offset %s" (show currentLine) (show (target - currentLine))) $
+                                      applyNth (currentLine `div` 2) bin (backpatchBinary offset))
+                                src
+                                bps
+    return patched
+
+
 ---------------
 -- Interface --
 ---------------
 
 assemble :: Program -> (Binaries, Memory)
-assemble p = let (bs, mem) = runState (assembleProgram p) emptyState
+assemble p = let (bs, mem) = runState (assembleProgram p >>= backpatch) emptyState
+                 bs'       = printBinaries bs
              in
-               (bs, mem)
+               trace (bs' ++ "\n" ++ show mem) $ (bs, mem)
+
+----------------------------------
+-- Backpatch labels into binary --
+----------------------------------
+
+-- Compresses a number into 8 bits.
+compress2c :: Binary -> Binary
+compress2c num =
+  let eightBits = num .&. 255
+  in
+    eightBits
+
+-- Decompresses a number into 16 bits.
+decompress2c :: Binary -> Binary
+decompress2c num =
+  let sixteenBits = num
+      sign        = shift (num .&. 128) 8 -- the Sign is on the 8th position from the right.
+  in
+    num .|. sign
+
+
+
+srcMask      = 4032
+dstMask      = 63
+dstMaskOneOp = 255
+operationMask = 61440
+
+-- The offset in a branch instruction is always a signed integer. A branc
+-- instruction uses 8 bytes for the operation, and 8 bytes for the offset.
+-- Additionally, the bytes of the signed integer are shifted to the right once,
+-- because we only have even addresses, we can simply assume that the least
+-- significant bit will always be 0.
+
+-- We assume that the numbers in haskell are in 2c.
+-- So to compress a number into the 8 bits we do the following.
+--
+backpatchBinary :: Binary -> Binary -> Binary
+backpatchBinary offset b =
+  trace (printf "Backpatching binary %s with offset %s" (show b) (show offset)) $
+   case op_id of
+      0 -> replacerTwoOp operation src dst offset
+      1 -> replacerTwoOp operation src dst offset
+      2 -> replacerTwoOp operation src dst offset
+      3 -> replacerTwoOp operation src dst offset
+      4 -> replacerOneOp operation single_dst offset
+      5 -> b
+  where
+    operation  = b .&. operationMask
+    op_id      = shift operation (-12)
+    src        = b .&. srcMask
+    dst        = b .&. dstMask
+    single_dst = b .&. dstMaskOneOp
+
+replacerTwoOp :: Binary -> Binary -> Binary -> Binary -> Binary
+replacerTwoOp op src dst lbl =
+  op .|. newSrc .|. newDst
+  where
+    newSrc = if src == srcMask then lbl else src
+    newDst = if dst == dstMask then lbl else dst
+
+replacerOneOp :: Binary -> Binary -> Binary -> Binary
+replacerOneOp op dst lbl =
+  trace (printf "Operation: %s Destination: %s Label: %s" (printBinary op) (printBinary dst) (printBinary lbl)) $
+    op .|. newDst
+  where
+    newDst = if dst == dstMask then lbl else dst
+
+
+
 
 -------------
 -- Program --
@@ -87,6 +192,7 @@ assembleProgram :: Program -> Compiler Binaries
 assembleProgram []     = return []
 assembleProgram (i:is) = do
   bs  <- assembleInstruction i
+  lineCountInc $ Prelude.length bs * 2
   bs' <- assembleProgram is
   return $ bs ++ bs'
 
@@ -171,11 +277,30 @@ assembleOperand (Immed n) = do
 -- If we return the value 63, that is the binary pattern 111 111.
 -- Addressing mode 111 does not exist, neither does register 111.
 -- We assume that this label will be inserted as an offset inline!
-assembleOperand (Lbl l) = return (63, Nothing)
+assembleOperand (Lbl l) = do
+  -- Store the fact we are referencing label l here.
+  lc <- lineCount
+  setBackpatch l lc
+  return (63, Nothing)
 
 
 inlineOperand :: Operand -> Compiler Binary
 inlineOperand (Immed n) = return (fromIntegral n :: Binary)
+
+inlineOperand (Mode0 r) = assembleRegister r
+
+inlineOperand (Mode1 r) = do
+  r <- assembleRegister r
+  return $ shift 2 3 .|. r
+
+inlineOperand (Mode2 r) = do
+  r <- assembleRegister r
+  return $ shift 2 3 .|. r
+
+inlineOperand(Lbl l) = do
+  lc <- lineCount
+  setBackpatch l lc
+  return 63
 
 ---------------
 -- Registers --
