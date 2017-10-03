@@ -160,6 +160,7 @@ backpatchBinary offset b =
       3 -> replacerTwoOp operation src dst offset
       4 -> replacerOneOp operation single_dst offset
       5 -> b
+      6 -> replacerOneOp operation single_dst offset
   where
     operation  = b .&. operationMask
     op_id      = shift operation (-12)
@@ -251,6 +252,7 @@ assembleOperator SUB  = return 2
 assembleOperator CMP  = return 3
 assembleOperator BEQ  = return 4
 assembleOperator STOP = return 5
+assembleOperator BNE  = return 6
 
 --------------
 -- Operands --

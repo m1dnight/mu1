@@ -89,7 +89,7 @@ operator2 = read <$> choice [try $ string "MOV", try $ string "ADD",
                             try $ string "SUB", try $ string "CMP"]
 
 operator1 :: Parser Operator
-operator1 = read <$> choice [try $ string "BEQ"]
+operator1 = read <$> choice [try $ string "BEQ", try $ string "BNE"]
 
 operator0 :: Parser Operator
 operator0 = read <$> choice [try $ string "STOP"]

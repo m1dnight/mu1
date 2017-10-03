@@ -23,6 +23,7 @@ data Operator
  | CMP
  | BEQ
  | STOP
+ | BNE
  deriving (Show, Eq, Read)
 
 type Label = String

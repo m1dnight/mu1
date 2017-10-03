@@ -12,4 +12,5 @@ MOV 2 R2
 MUL: ADD R3 R1 ; R1 * 2
      SUB 1  R2
      CMP R2 0
-     BEQ -4
+     BNE -4
+     STOP
