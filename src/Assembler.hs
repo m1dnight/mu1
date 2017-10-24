@@ -1,18 +1,18 @@
 module Assembler where
 
-import AST
+import           AST
 
-import Control.Monad.Trans.State.Lazy
-import Data.ByteString as BS
-import Data.Map as M
-import Data.Map.Strict
-import Data.Word
-import Data.Bits
-import Util
-import Data.Maybe
+import           Control.Monad.Trans.State.Lazy
+import           Data.Bits
+import           Data.ByteString                as BS
+import           Data.Map                       as M
+import           Data.Map.Strict
+import           Data.Maybe
+import           Data.Word
+import           Util
 
-import Debug.Trace
-import Text.Printf
+import           Debug.Trace
+import           Text.Printf
 
 ----------------------------------
 -- The state during compilation --
@@ -161,6 +161,7 @@ backpatchBinary offset b =
       4 -> replacerOneOp operation single_dst offset
       5 -> b
       6 -> replacerOneOp operation single_dst offset
+      7 -> replacerOneOp operation single_dst offset
   where
     operation  = b .&. operationMask
     op_id      = shift operation (-12)
@@ -202,7 +203,7 @@ assembleProgram (i:is) = do
 -----------------
 
 assembleInstruction :: Instruction -> Compiler Binaries
-assembleInstruction (Op o) = assembleOperation o
+assembleInstruction (Op o)  = assembleOperation o
 assembleInstruction (LOp o) = assembleLabeledOperation o
 
 -----------------------
@@ -253,6 +254,7 @@ assembleOperator CMP  = return 3
 assembleOperator BEQ  = return 4
 assembleOperator STOP = return 5
 assembleOperator BNE  = return 6
+assembleOperator JMP  = return 7
 
 --------------
 -- Operands --

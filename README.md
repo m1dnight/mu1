@@ -11,3 +11,4 @@
 | 4      | BEQ offset     | Jump to PC + offset if the C bit is true.        |
 | 5      | STOP           | Computer stops.                                  |
 | 6      | BNE offset     | Jumps to PC + offset if the C bit is false.      |
+| 7      | JMP offset     | Jumps to PC + offset unconditionally.            |

@@ -1,9 +1,9 @@
 module Parser where
-import Text.Parsec.String
-import Data.Char
-import Text.Parsec hiding (label)
-import Control.Monad
-import AST
+import           AST
+import           Control.Monad
+import           Data.Char
+import           Text.Parsec        hiding (label)
+import           Text.Parsec.String
 
 -- ************************************************************************** --
 
@@ -89,7 +89,7 @@ operator2 = read <$> choice [try $ string "MOV", try $ string "ADD",
                             try $ string "SUB", try $ string "CMP"]
 
 operator1 :: Parser Operator
-operator1 = read <$> choice [try $ string "BEQ", try $ string "BNE"]
+operator1 = read <$> choice [try $ string "BEQ", try $ string "BNE", try $ string "JMP"]
 
 operator0 :: Parser Operator
 operator0 = read <$> choice [try $ string "STOP"]

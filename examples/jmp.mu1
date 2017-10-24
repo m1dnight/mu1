@@ -1,0 +1,4 @@
+
+START: MOV 10 R1
+       JMP START
+       STOP

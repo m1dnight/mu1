@@ -24,6 +24,7 @@ data Operator
  | BEQ
  | STOP
  | BNE
+ | JMP
  deriving (Show, Eq, Read)
 
 type Label = String
